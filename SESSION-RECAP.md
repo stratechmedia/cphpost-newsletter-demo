@@ -18,3 +18,14 @@
 ### Commits i denne session
 419ac67 Add newsletter automation demo
 
+
+---
+## Session afsluttet: 2026-05-18 13:57
+**Projekt:** newsletter-demo-deploy
+**Branch:** main
+**Stop-årsag:** ukendt
+
+### Commits i denne session
+d921863 Switch to Express server for Railway compatibility
+419ac67 Add newsletter automation demo
+
