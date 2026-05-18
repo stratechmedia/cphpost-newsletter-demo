@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CphPost Morning Brief — Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f5f7; color: #1a1a2e; }
+
+  .topbar {
+    background: #1a1a2e;
+    color: white;
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .topbar .logo { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+  .topbar .meta { font-size: 13px; color: #aab; }
+  .topbar .status-dot { display: inline-block; width: 8px; height: 8px; background: #4ade80; border-radius: 50%; margin-right: 6px; }
+
+  .layout { display: grid; grid-template-columns: 1fr 420px; gap: 0; min-height: calc(100vh - 52px); }
+
+  /* LEFT: Article selection */
+  .left-panel { padding: 28px 32px; overflow-y: auto; }
+  .panel-header { margin-bottom: 24px; }
+  .panel-header h1 { font-size: 22px; font-weight: 700; color: #1a1a2e; }
+  .panel-header p { color: #666; font-size: 14px; margin-top: 4px; }
+
+  .newsletter-section { margin-bottom: 32px; }
+  .section-label {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: #888; margin-bottom: 12px;
+    padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;
+  }
+  .section-label .quota { background: #e8f4ff; color: #2563eb; padding: 2px 8px; border-radius: 10px; font-size: 10px; }
+  .section-label .quota.done { background: #dcfce7; color: #16a34a; }
+
+  .article-card {
+    background: white;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .article-card:hover { border-color: #d1d5db; }
+  .article-card.selected { border-color: #2563eb; background: #f0f7ff; }
+
+  .article-card input[type="checkbox"] { margin-top: 3px; width: 16px; height: 16px; accent-color: #2563eb; flex-shrink: 0; cursor: pointer; }
+  .article-card .content { flex: 1; }
+  .article-card .headline { font-size: 14px; font-weight: 600; line-height: 1.4; color: #1a1a2e; }
+  .article-card .meta-row { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+  .article-card .time { font-size: 11px; color: #999; }
+  .article-card .tag { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; }
+  .tag.politik { background: #fef3c7; color: #92400e; }
+  .tag.indland { background: #e0f2fe; color: #075985; }
+  .tag.udland { background: #f0fdf4; color: #166534; }
+  .tag.erhverv { background: #fdf4ff; color: #7e22ce; }
+  .tag.kriminal { background: #fff1f2; color: #9f1239; }
+  .article-card .lead { font-size: 12px; color: #666; margin-top: 4px; line-height: 1.5; }
+
+  .section-divider { margin: 8px 0 16px; font-size: 12px; font-weight: 600; color: #2563eb; padding: 6px 10px; background: #eff6ff; border-radius: 6px; display: inline-block; }
+
+  /* RIGHT: Preview + actions */
+  .right-panel { background: white; border-left: 1px solid #e5e7eb; display: flex; flex-direction: column; }
+
+  .right-header { padding: 20px 24px 16px; border-bottom: 1px solid #e5e7eb; }
+  .right-header h2 { font-size: 15px; font-weight: 700; }
+  .right-header p { font-size: 12px; color: #888; margin-top: 2px; }
+
+  .progress-bar-wrap { padding: 16px 24px 0; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 6px; }
+  .progress-bar { height: 4px; background: #e5e7eb; border-radius: 2px; }
+  .progress-fill { height: 4px; background: #2563eb; border-radius: 2px; width: 42%; transition: width 0.3s; }
+
+  .selection-summary { padding: 16px 24px; border-bottom: 1px solid #e5e7eb; }
+  .summary-row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+  .summary-row .label { color: #666; }
+  .summary-row .val { font-weight: 600; }
+  .summary-row .val.ok { color: #16a34a; }
+  .summary-row .val.need { color: #dc2626; }
+
+  .preview-area { flex: 1; padding: 20px 24px; overflow-y: auto; }
+  .preview-area h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 12px; }
+
+  .converted-article { background: #f9fafb; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+  .converted-article .title { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .converted-article .body { font-size: 12px; line-height: 1.7; color: #444; }
+  .converted-article .body .term {
+    background: #fef9c3; border-bottom: 1px dashed #ca8a04;
+    cursor: help; position: relative;
+  }
+  .converted-article .body .term[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute; bottom: 100%; left: 0;
+    background: #1a1a2e; color: white;
+    font-size: 11px; padding: 4px 8px; border-radius: 4px;
+    white-space: nowrap; z-index: 10; margin-bottom: 4px;
+  }
+  .glossary-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: #ca8a04; font-weight: 600; margin-top: 8px; }
+
+  .action-bar { padding: 16px 24px; border-top: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 10px; }
+
+  .btn {
+    padding: 11px 20px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    cursor: pointer; border: none; transition: all 0.15s; text-align: center;
+  }
+  .btn-primary { background: #1a1a2e; color: white; }
+  .btn-primary:hover { background: #2d2d4e; }
+  .btn-secondary { background: white; color: #1a1a2e; border: 1.5px solid #d1d5db; }
+  .btn-secondary:hover { background: #f9fafb; }
+  .btn-success { background: #16a34a; color: white; }
+  .btn-success:hover { background: #15803d; }
+  .btn-disabled { background: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
+
+  .step-indicator { display: flex; gap: 0; margin-bottom: 6px; }
+  .step { flex: 1; text-align: center; font-size: 10px; padding: 6px 4px; border-bottom: 2px solid #e5e7eb; color: #999; }
+  .step.active { border-color: #2563eb; color: #2563eb; font-weight: 700; }
+  .step.done { border-color: #16a34a; color: #16a34a; }
+
+  .auto-badge { font-size: 10px; background: #dcfce7; color: #15803d; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+  .manual-badge { font-size: 10px; background: #fef3c7; color: #92400e; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+
+  .time-saved { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; font-size: 12px; color: #166534; text-align: center; }
+  .time-saved strong { font-size: 20px; display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">CphPost — Morning Brief Dashboard</div>
+  <div class="meta"><span class="status-dot"></span>Articles fetched automatically at 05:45 · Monday 18 May 2026</div>
+</div>
+
+<div class="layout">
+
+  <!-- LEFT: Select articles -->
+  <div class="left-panel">
+    <div class="panel-header">
+      <h1>Select today's stories</h1>
+      <p>Articles have been fetched from Ritzau. Select which ones to include — the system handles the rest.</p>
+    </div>
+
+    <!-- Newsletter 1: Danish News in English -->
+    <div class="newsletter-section">
+      <div class="section-divider">Newsletter 1 — Danish News in English · 06:00</div>
+
+      <div class="section-label">
+        Today's News
+        <span class="quota done">4 selected ✓</span>
+      </div>
+
+      <div class="article-card selected" onclick="toggle(this)">
+        <input type="checkbox" checked>
+        <div class="content">
+          <div class="headline">Norway joins Denmark in EU Baltic Sea cooperation</div>
+          <div class="meta-row"><span class="time">11:56</span><span class="tag udland">Foreign</span></div>
+          <div class="lead">Norway and Denmark will strengthen cooperation on Baltic Sea security through a new EU framework signed Monday.</div>
+        </div>
+      </div>
+
+      <div class="article-card selected" onclick="toggle(this)">
+        <input type="checkbox" checked>
+        <div class="content">
+          <div class="headline">Minister to explain Trump envoy visit to Greenlanders</div>
+          <div class="meta-row"><span class="time">12:20</span><span class="tag politik">Politics</span></div>
+          <div class="lead">Greenland's foreign minister will meet US envoy Jeff Landry on Monday to make clear that Greenland's future is for Greenlanders to decide.</div>
+        </div>
+      </div>
+
+      <div class="article-card selected" onclick="toggle(this)">
+        <input type="checkbox" checked>
+        <div class="content">
+          <div class="headline">Electrification delays trains on multiple routes</div>
+          <div class="meta-row"><span class="time">11:52</span><span class="tag indland">Domestic</span></div>
+        </div>
+      </div>
+
+      <div class="article-card selected" onclick="toggle(this)">
+        <input type="checkbox" checked>
+        <div class="content">
+          <div class="headline">Jess Thorup hospitalized after sudden illness</div>
+          <div class="meta-row"><span class="time">12:29</span><span class="tag udland">Foreign</span></div>
+        </div>
+      </div>
+
+      <div class="article-card" onclick="toggle(this)">
+        <input type="checkbox">
+        <div class="content">
+          <div class="headline">InstallerGroup to list on Copenhagen Stock Exchange</div>
+          <div class="meta-row"><span class="time">11:48</span><span class="tag erhverv">Business</span></div>
+        </div>
+      </div>
+
+      <div class="section-label" style="margin-top:16px">
+        Politics
+        <span class="quota">1 / 2–4 selected</span>
+      </div>
+
+      <div class="article-card selected" onclick="toggle(this)">
+        <input type="checkbox" checked>
+        <div class="content">
+          <div class="headline">DF and LA clash over immigration tightening</div>
+          <div class="meta-row"><span class="time">09:15</span><span class="tag politik">Politics</span></div>
+        </div>
+      </div>
+
+      <div class="article-card" onclick="toggle(this)">
+        <input type="checkbox">
+        <div class="content">
+          <div class="headline">Moderates call for reform of early retirement scheme</div>
+          <div class="meta-row"><span class="time">08:40</span><span class="tag politik">Politics</span></div>
+        </div>
+      </div>
+
+      <div class="section-label" style="margin-top:16px">
+        Business
+        <span class="quota done">2 selected ✓</span>
+      </div>
+
+      <div class="article-card selected" onclick="toggle(this)">
+        <input type="checkbox" checked>
+        <div class="content">
+          <div class="headline">DI warns of consequences if EU-US trade deal fails</div>
+          <div class="meta-row"><span class="time">10:05</span><span class="tag erhverv">Business</span></div>
+          <div class="lead">Denmark's largest business lobby warns that a breakdown in negotiations would hit exports hard.</div>
+        </div>
+      </div>
+
+      <div class="article-card selected" onclick="toggle(this)">
+        <input type="checkbox" checked>
+        <div class="content">
+          <div class="headline">Spanish court orders Shakira to pay millions in back taxes</div>
+          <div class="meta-row"><span class="time">11:45</span><span class="tag udland">Foreign</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Newsletter 2 -->
+    <div class="newsletter-section">
+      <div class="section-divider">Newsletter 2 — The Copenhagen Post · 07:00 <span class="auto-badge">Mostly automatic</span></div>
+
+      <div class="section-label">
+        All categories since yesterday 16:00
+        <span class="quota done">Auto-fetched ✓</span>
+      </div>
+
+      <div class="article-card selected" onclick="toggle(this)">
+        <input type="checkbox" checked>
+        <div class="content">
+          <div class="headline">Man charged with attempted murder after AK-47 shooting in Copenhagen</div>
+          <div class="meta-row"><span class="time">12:24</span><span class="tag kriminal">Crime</span></div>
+        </div>
+      </div>
+
+      <div class="article-card selected" onclick="toggle(this)">
+        <input type="checkbox" checked>
+        <div class="content">
+          <div class="headline">Gold medal celebrations in Aarhus mostly peaceful</div>
+          <div class="meta-row"><span class="time">11:56</span><span class="tag indland">Domestic</span></div>
+        </div>
+      </div>
+
+      <div class="article-card selected" onclick="toggle(this)">
+        <input type="checkbox" checked>
+        <div class="content">
+          <div class="headline">Iranian Nobel laureate discharged from Tehran hospital</div>
+          <div class="meta-row"><span class="time">11:53</span><span class="tag udland">Foreign</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Status + preview -->
+  <div class="right-panel">
+    <div class="right-header">
+      <h2>Today's brief status</h2>
+      <p>Review selections, then convert and send</p>
+    </div>
+
+    <div class="step-indicator">
+      <div class="step done">1. Select</div>
+      <div class="step active">2. Convert</div>
+      <div class="step">3. Review</div>
+      <div class="step">4. Send</div>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-label"><span>Articles selected</span><span>10 / ~14</span></div>
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+    </div>
+
+    <div class="selection-summary">
+      <div class="summary-row"><span class="label">Newsletter 1 — Today's News</span><span class="val ok">4 ✓</span></div>
+      <div class="summary-row"><span class="label">Newsletter 1 — Politics</span><span class="val need">1 (need 2–4)</span></div>
+      <div class="summary-row"><span class="label">Newsletter 1 — Business</span><span class="val ok">2 ✓</span></div>
+      <div class="summary-row"><span class="label">Newsletter 2 — All categories</span><span class="val ok">3 selected</span></div>
+    </div>
+
+    <div class="preview-area">
+      <h3>Converted preview <span class="auto-badge">AI converted</span></h3>
+
+      <div class="converted-article">
+        <div class="title">DI warns of consequences if EU-US trade deal fails</div>
+        <div class="body">
+          <span class="term" data-tooltip="Confederation of Danish Industry — Denmark's largest business lobby">DI (the Confederation of Danish Industry)</span> warned Monday that a breakdown in EU-US trade negotiations could have serious consequences for Danish exports. The organisation called on the government to prioritise securing a deal before the summer recess.
+        </div>
+        <div class="glossary-badge">★ 1 term auto-explained from glossary</div>
+      </div>
+
+      <div class="converted-article">
+        <div class="title">DF and LA clash over immigration tightening</div>
+        <div class="body">
+          <span class="term" data-tooltip="Danish People's Party — right-wing, nationalist and anti-immigration">DF (the Danish People's Party)</span> and
+          <span class="term" data-tooltip="Liberal Alliance — right-wing, economically liberal and low-tax">Liberal Alliance</span> are at odds over the pace of new immigration restrictions, with DF calling for immediate action while LA insists on a broader reform package.
+        </div>
+        <div class="glossary-badge">★ 2 terms auto-explained from glossary</div>
+      </div>
+
+      <div style="margin-top: 16px;">
+        <h3 style="margin-bottom:10px">Workflow steps <span class="manual-badge">you do this</span> <span class="auto-badge">automatic</span></h3>
+        <div style="font-size: 12px; line-height: 2; color: #444;">
+          <div>✅ <span class="auto-badge">auto</span> &nbsp;Articles fetched from Ritzau at 05:45</div>
+          <div>✅ <span class="manual-badge">you</span> &nbsp;Select which stories to include</div>
+          <div>✅ <span class="auto-badge">auto</span> &nbsp;Convert + add terminology explanations</div>
+          <div>⬜ <span class="manual-badge">you</span> &nbsp;Read through converted articles</div>
+          <div>⬜ <span class="auto-badge">auto</span> &nbsp;Send Newsletter 1 via Textmorpher</div>
+          <div>⬜ <span class="auto-badge">auto</span> &nbsp;Send Newsletter 2 via Mailjet</div>
+          <div>⬜ <span class="auto-badge">auto</span> &nbsp;Update WordPress display date</div>
+        </div>
+      </div>
+
+      <div class="time-saved" style="margin-top: 20px;">
+        <strong>~35 min saved per morning</strong>
+        Estimated 170+ hours saved per year
+      </div>
+    </div>
+
+    <div class="action-bar">
+      <button class="btn btn-primary">Convert selected articles →</button>
+      <button class="btn btn-disabled">Send Newsletter 1 (convert first)</button>
+      <button class="btn btn-disabled">Send Newsletter 2 via Mailjet</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggle(card) {
+  const cb = card.querySelector('input[type="checkbox"]');
+  cb.checked = !cb.checked;
+  card.classList.toggle('selected', cb.checked);
+}
+</script>
+</body>
+</html>
