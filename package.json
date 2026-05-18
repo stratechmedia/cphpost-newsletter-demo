@@ -2,9 +2,9 @@
   "name": "cphpost-newsletter-demo",
   "version": "1.0.0",
   "scripts": {
-    "start": "serve -s . -l $PORT"
+    "start": "node server.js"
   },
   "dependencies": {
-    "serve": "^14.2.3"
+    "express": "^4.19.2"
   }
 }
